@@ -1,43 +1,56 @@
-/**
- * Queueable Apex class for processing News Category records with pagination support
- */
 public class NewsCategoryQueueable implements Queueable, Database.AllowsCallouts {
     // Static variable for maximum pages to fetch
     private static final Integer MAX_PAGES = 3;
-    
+    private static final Integer PAGE_SIZE = 20; // Page size can be increased to 100, but should match NewsAPIService Class.
     private News_Category__c category;
     private Integer currentPage;
-    
-    /**
-     * Constructor
-     * @param category The News_Category__c record
-     * @param currentPage Current page to process
-     */
+    private Integer totalResults;
+
     public NewsCategoryQueueable(News_Category__c category, Integer currentPage) {
-        // TODO: Initialize with category and current page
+        this.category = category;
+        this.currentPage = currentPage;
+        this.totalResults = null;
     }
-    
-    /**
-     * Execute method for the queueable job
-     * @param context The QueueableContext
-     */
+
     public void execute(QueueableContext context) {
         // IMPORTANT: Create a separate instance of the category for updates
         News_Category__c updatedCategory = new News_Category__c(Id = category.Id);
         
         try {
-            // TODO: Implement execute method
-            // - Call NewsAPI for the current page
-            // - Convert API articles to Salesforce articles using NewsAPIResponse.convertToSObject
-            // - Add category reference to each article
-            // - Insert the articles
-            // - Check if reached MAX_PAGES or no more articles
-            // HINT: When requeuing the job check if tests are running
-            // - Update category with last synced date and sync flag = false
+            NewsAPIResponse apiResponse = NewsAPIService.getTopHeadlinesByCategory(category.Name, currentPage);
+            System.debug('ARTICLES: ' + apiResponse.articles);
+            List<Article__c> articles = new List<Article__c>();
+            for (NewsAPIResponse.Article apiArticle : apiResponse.articles) {
+                System.debug('API ARTICLE: ' + apiArticle);
+                Article__c article = NewsAPIResponse.convertToSObject(apiArticle);
+                article.News_Category__c = category.Id;
+                article.Category__c = category.Name;
+                articles.add(article);
+            }
+            
+            Database.insert(articles, AccessLevel.SYSTEM_MODE);
+
+            if (currentPage == 1) {
+                this.totalResults = apiResponse.totalResults;
+            }
+            Integer recordsFetched = currentPage * PAGE_SIZE;
+            Boolean hasMoreRecords = totalResults > recordsFetched;
+            Boolean withinPageLimit = currentPage < MAX_PAGES;
+            
+            if (hasMoreRecords && withinPageLimit && !Test.isRunningTest()) {
+                this.currentPage++;
+                Integer delayInMinutes = 2;
+                System.enqueueJob(this, delayInMinutes);
+            }
+
+            updatedCategory.Last_Synced__c = Datetime.now();
+            updatedCategory.Sync__c = false;
+            Database.update(updatedCategory, AccessLevel.SYSTEM_MODE);
         } catch (Exception e) {
-            // TODO: Handle errors
-            // - Update category with error information
-            // - Log error to debug logs
+            updatedCategory.Error_Information__c = e.getMessage();
+            updatedCategory.Sync__c = false;
+            Database.update(updatedCategory, AccessLevel.SYSTEM_MODE);
+            System.debug(e.getMessage());
         }
     }
-} 
+}

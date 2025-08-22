@@ -76,4 +76,4 @@ public class NewsAPIMock implements HttpCalloutMock {
         
         return new NewsAPIMock(401, errorBody);
     }
-} 
+}

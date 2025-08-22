@@ -142,4 +142,4 @@ private class NewsCategoryTriggerTest {
         ];
         Assert.areEqual(0, articles.size(), 'Should not have created any articles');
     }
-} 
+}

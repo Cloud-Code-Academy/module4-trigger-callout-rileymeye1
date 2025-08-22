@@ -35,4 +35,4 @@ private class NewsAPIServiceTest {
         Assert.areEqual('ok', response.status, 'Response status should be ok');
         Assert.areEqual(2, response.totalResults, 'Should have 2 articles');
     }
-} 
+}

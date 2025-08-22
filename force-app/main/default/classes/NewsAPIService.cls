@@ -1,59 +1,65 @@
-/**
- * Service class to interact with the NewsAPI for fetching top headlines
- */
 public with sharing class NewsAPIService {
-    // TODO: Define API endpoint constants
-    private static final String API_NAMED_CREDENTIAL = 'callout:NewsAPI'; //https://newsapi.org
+    private static final String API_NAMED_CREDENTIAL = 'callout:NewsAPI'; // https://newsapi.org
     private static final String API_ENDPOINT = '/v2/top-headlines';
-    
-    // TODO: Define default parameters
-    private static final Integer PAGE_SIZE = 20; 
-    
-    /**
-     * Fetches top headlines for a specified category with pagination support
-     * @param category The news category (business, entertainment, general, health, science, sports, technology)
-     * @param page Page number for pagination
-     * @return NewsAPIResponse The wrapper object containing the API response
-     */
+
+    private static final Integer PAGE_SIZE = 20; // Page size can be increased to 100, but should match NewsCategoryQueueable Class.
+    private static List<String> defaultCategories = new List<String>{
+        'business', 'entertainment', 'general', 'health', 'science', 'sports', 'technology'
+    };
+
     public static NewsAPIResponse getTopHeadlinesByCategory(String category, Integer page) {
-        // TODO: Implement method to fetch headlines by category
-        // - Validate parameters
-        // - Build the request URL with fixed page size
-        // - Make the callout
-        // - Parse and return the response
+        if (String.isBlank(category) || !defaultCategories.contains(category.toLowerCase())) {
+            throw new IllegalArgumentException('Invalid parameter, category: ' + category);
+        } else if (page < 0) {
+            throw new IllegalArgumentException('Invalid parameter, page: ' + page);
+        }
+
+        NewsAPI_Setting__mdt newsApiSetting = NewsAPI_Setting__mdt.getInstance('ACTIVE');
+        String endpoint = API_NAMED_CREDENTIAL + API_ENDPOINT + '?apiKey=' + newsApiSetting.X_Api_Key__c + '&category=' + category + '&pageSize=' + PAGE_SIZE + '&page=' + page;
+        System.debug('ENDPOINT: ' + endpoint);
+        HttpResponse res = makeCallout(endpoint);
+        NewsAPIResponse newsApiResponse = parseResponse(res.getBody());
         
-        return null;
+        return newsApiResponse;
     }
-    
-    /**
-     * Helper method to make the HTTP callout
-     * @param endpoint The full URL with parameters
-     * @return HttpResponse The HTTP response
-     */
+
     private static HttpResponse makeCallout(String endpoint) {
-        // TODO: Implement HTTP callout
-        // - Create and configure HTTP request
-        // - Make the callout
-        // - Handle exceptions
-        
-        return null;
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(endpoint);
+        req.setMethod('GET');
+        req.setHeader('Content-Type', 'application/json');
+        req.setHeader('Accept', 'application/json');
+        req.setTimeout(10000); // 10 seconds
+
+        Http http = new Http();
+        HttpResponse res = http.send(req);
+        // Documentation for NewsAPI Error Codes https://newsapi.org/docs/errors
+        if (res.getStatusCode() == 400) {
+            throw new NewsAPIException('Bad Request: ' + res.getBody());
+        } else if (res.getStatusCode() == 401) {
+            throw new NewsAPIException('Unauthorized: ' + res.getBody());
+        } else if (res.getStatusCode() == 429) {
+            throw new NewsAPIException('Too Many Requests: ' + res.getBody());
+        } else if (res.getStatusCode() == 500) {
+            throw new NewsAPIException('Internal Server Error: ' + res.getBody());
+        }
+        return res;
     }
-    
-    /**
-     * Helper method to parse the JSON response
-     * @param jsonResponse The JSON response string
-     * @return NewsAPIResponse The parsed response object
-     */
+
     private static NewsAPIResponse parseResponse(String jsonResponse) {
-        // TODO: Implement JSON parsing
-        // - Deserialize JSON to NewsAPIResponse
-        // - Handle exceptions
+        if (String.isBlank(jsonResponse)) {
+            throw new IllegalArgumentException('Parameter should be a JSON string');
+        }
+
+        NewsAPIResponse newsApiResponse;
+        try {
+            newsApiResponse = (NewsAPIResponse) JSON.deserialize(jsonResponse, NewsAPIResponse.class);
+        } catch (Exception e) {
+            throw new NewsAPIException('Could not parse response: ' + e.getMessage());
+        }
         
-        return null;
+        return newsApiResponse;
     }
-    
-    /**
-     * Custom exception class for NewsAPI errors
-     */
+
     public class NewsAPIException extends Exception {}
-} 
+}
