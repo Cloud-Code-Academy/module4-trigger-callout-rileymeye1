@@ -1,47 +1,47 @@
-/**
- * Wrapper class for parsing the NewsAPI response
- */
 public class NewsAPIResponse {
-    // TODO: Define fields to match the NewsAPI response structure
     public String status { get; set; }
     public Integer totalResults { get; set; }
     public List<Article> articles { get; set; }
-    
-    /**
-     * Inner class representing a news article
-     */
+
     public class Article {
-        // TODO: Define article fields
-        // Example fields:
-        // public String title { get; set; }
-        // public String description { get; set; }
-        // public String url { get; set; }
-        // etc.
+        public Source source;
+        public String author;
+        public String title;
+        public String description;
+        public String url;
+        public String urlToImage;
+        public String publishedAt;
+        public String content;
     }
-    
-    /**
-     * Inner class representing a news source
-     */
+
     public class Source {
-        // TODO: Define source fields
-        // Example fields:
-        // public String id { get; set; }
-        // public String name { get; set; }
+        public String id;
+        public String name;
     }
-    
-    /**
-     * Static method to convert an API article to a Salesforce Article__c record
-     * @param apiArticle The API article to convert
-     * @return Article__c The Salesforce record
-     */
+
     public static Article__c convertToSObject(Article apiArticle) {
-        // TODO: Implement conversion from API article to Salesforce record
-        // Consider:
-        // - Generating a unique record name
-        // - Setting article fields from the API response
-        // - Handling content length limits if needed
-        // - Handling date conversion
+        // Converts the publishedAt String to a Date/Time value to be used
+        Datetime publishedDateTime = (Datetime) JSON.deserialize('"' + apiArticle.publishedAt + '"', Datetime.class);
+
+        Article__c article = new Article__c();
+        article.Name = apiArticle.title.length() > 60 ? apiArticle.title.substring(0, 60) + '-' + publishedDateTime : apiArticle.title + '-' + publishedDateTime;
+        if (String.isNotBlank(apiArticle.author)) {
+            article.Author__c = apiArticle.author;
+        }
+        if (String.isNotBlank(apiArticle.content)) {
+            article.Content__c = apiArticle.content.length() > 131072 ? apiArticle.content.substring(0, 131072) : apiArticle.content;
+        }
+        if (String.isNotBlank(apiArticle.description)) {
+            article.Description__c = apiArticle.description.length() > 32768 ? apiArticle.description.substring(0, 32768) : apiArticle.description;
+        }
+        article.Published_At__c = publishedDateTime;
+        article.Source__c = apiArticle.source.name;
+        article.Title__c = apiArticle.title;
+        article.url__c = apiArticle.url;
+        if (String.isNotBlank(apiArticle.urlToImage)) {
+            article.urlToImage__c = apiArticle.urlToImage;
+        }
         
-        return null;
+        return article;
     }
-} 
+}
