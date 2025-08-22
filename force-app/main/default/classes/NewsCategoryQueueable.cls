@@ -1,7 +1,7 @@
 public class NewsCategoryQueueable implements Queueable, Database.AllowsCallouts {
     // Static variable for maximum pages to fetch
     private static final Integer MAX_PAGES = 3;
-    private static final Integer PAGE_SIZE = 20;
+    private static final Integer PAGE_SIZE = 20; // Page size can be increased to 100, but should match NewsAPIService Class.
     private News_Category__c category;
     private Integer currentPage;
     private Integer totalResults;
