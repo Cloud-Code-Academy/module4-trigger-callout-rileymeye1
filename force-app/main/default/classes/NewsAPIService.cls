@@ -2,12 +2,15 @@ public with sharing class NewsAPIService {
     private static final String API_NAMED_CREDENTIAL = 'callout:NewsAPI'; //https://newsapi.org
     private static final String API_ENDPOINT = '/v2/top-headlines';
 
-    private static final Integer PAGE_SIZE = 20;
+    private static final Integer PAGE_SIZE = (Integer) NewsAPISettings__c.getOrgDefaults().Page_Size__c; // This is set via Custom Setting so that it can be used across classes.
     private static List<String> defaultCategories = new List<String>{
         'business', 'entertainment', 'general', 'health', 'science', 'sports', 'technology'
     };
 
     public static NewsAPIResponse getTopHeadlinesByCategory(String category, Integer page) {
+        if (page < 0) {
+            throw new IllegalArgumentException('Page cannot be negative');
+        }
         if (String.isBlank(category) || !defaultCategories.contains(category.toLowerCase())) {
             throw new IllegalArgumentException('Invalid parameter, category: ' + category);
         } else if (page < 0) {
