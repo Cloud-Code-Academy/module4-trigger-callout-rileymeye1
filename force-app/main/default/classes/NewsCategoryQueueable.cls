@@ -1,7 +1,7 @@
 public class NewsCategoryQueueable implements Queueable, Database.AllowsCallouts {
     // Static variable for maximum pages to fetch
     private static final Integer MAX_PAGES = 3;
-    private static final Integer PAGE_SIZE = (Integer) NewsAPISettings__c.getOrgDefaults().Page_Size__c; // This is set via Custom Setting so that it can be used across classes.
+    private static final Integer PAGE_SIZE = 20;
     private News_Category__c category;
     private Integer currentPage;
     private Integer totalResults;
@@ -12,20 +12,16 @@ public class NewsCategoryQueueable implements Queueable, Database.AllowsCallouts
         this.totalResults = null;
     }
 
-    public NewsCategoryQueueable(News_Category__c category, Integer currentPage, Integer totalResults) {
-        this.category = category;
-        this.currentPage = currentPage;
-        this.totalResults = totalResults;
-    }
-
     public void execute(QueueableContext context) {
         // IMPORTANT: Create a separate instance of the category for updates
         News_Category__c updatedCategory = new News_Category__c(Id = category.Id);
         
         try {
             NewsAPIResponse apiResponse = NewsAPIService.getTopHeadlinesByCategory(category.Name, currentPage);
+            System.debug('ARTICLES: ' + apiResponse.articles);
             List<Article__c> articles = new List<Article__c>();
             for (NewsAPIResponse.Article apiArticle : apiResponse.articles) {
+                System.debug('API ARTICLE: ' + apiArticle);
                 Article__c article = NewsAPIResponse.convertToSObject(apiArticle);
                 article.News_Category__c = category.Id;
                 article.Category__c = category.Name;
@@ -42,8 +38,9 @@ public class NewsCategoryQueueable implements Queueable, Database.AllowsCallouts
             Boolean withinPageLimit = currentPage < MAX_PAGES;
             
             if (hasMoreRecords && withinPageLimit && !Test.isRunningTest()) {
+                this.currentPage++;
                 Integer delayInMinutes = 2;
-                System.enqueueJob(new NewsCategoryQueueable(category, currentPage + 1, totalResults), delayInMinutes);
+                System.enqueueJob(this, delayInMinutes);
             }
 
             updatedCategory.Last_Synced__c = Datetime.now();

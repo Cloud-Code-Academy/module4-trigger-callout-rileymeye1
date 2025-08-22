@@ -24,7 +24,7 @@ public with sharing class NewsCategoryTriggerHandler {
         AsyncOptions asyncOptions = new AsyncOptions();
         asyncOptions.MaximumQueueableStackDepth = 200; // Fail safe to prevent infinite queueing
         for (News_Category__c category : categoriesToSync) {
-            System.enqueueJob(new NewsCategoryQueueable(category, 0), asyncOptions);
+            System.enqueueJob(new NewsCategoryQueueable(category, 1), asyncOptions);
         }
     }
 }
