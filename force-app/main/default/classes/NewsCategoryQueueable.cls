@@ -38,7 +38,7 @@ public class NewsCategoryQueueable implements Queueable, Database.AllowsCallouts
                 this.totalResults = apiResponse.totalResults;
             }
             Integer recordsFetched = currentPage * PAGE_SIZE;
-            Boolean hasMoreRecords = apiResponse.totalResults > recordsFetched;
+            Boolean hasMoreRecords = totalResults > recordsFetched;
             Boolean withinPageLimit = currentPage < MAX_PAGES;
             
             if (hasMoreRecords && withinPageLimit && !Test.isRunningTest()) {
