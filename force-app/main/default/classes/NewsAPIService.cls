@@ -1,5 +1,5 @@
 public with sharing class NewsAPIService {
-    private static final String API_NAMED_CREDENTIAL = 'callout:NewsAPI'; //https://newsapi.org
+    private static final String API_NAMED_CREDENTIAL = 'callout:NewsAPI'; // https://newsapi.org
     private static final String API_ENDPOINT = '/v2/top-headlines';
 
     private static final Integer PAGE_SIZE = 20; // Page size can be increased to 100, but should match NewsCategoryQueueable Class.
