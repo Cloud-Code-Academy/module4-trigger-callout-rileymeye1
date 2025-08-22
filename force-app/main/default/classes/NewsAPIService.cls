@@ -14,7 +14,8 @@ public with sharing class NewsAPIService {
             throw new IllegalArgumentException('Invalid parameter, page: ' + page);
         }
 
-        String endpoint = API_NAMED_CREDENTIAL + API_ENDPOINT + '?category=' + category + '&pageSize=' + PAGE_SIZE + '&page=' + page;
+        NewsAPI_Setting__mdt newsApiSetting = NewsAPI_Setting__mdt.getInstance('ACTIVE');
+        String endpoint = API_NAMED_CREDENTIAL + API_ENDPOINT + '?apiKey=' + newsApiSetting.X_Api_Key__c + '&category=' + category + '&pageSize=' + PAGE_SIZE + '&page=' + page;
         HttpResponse res = makeCallout(endpoint);
         NewsAPIResponse newsApiResponse = parseResponse(res.getBody());
         
